@@ -61,7 +61,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
-    
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'corsheaders.middleware.CorsMiddleware',
 ]
@@ -89,12 +90,28 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+
+from pathlib import Path
+import os
+
+# حالا می‌توانید از متغیرهای محیطی استفاده کنید
+SECRET_KEY = os.getenv('SECRET_KEY')
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
+
+
+
 
 
 # Password validation
@@ -153,43 +170,35 @@ SITE_ID = 1
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:8000",
+    "http://localhost:3000",
 ]
 
+
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+CORS_ALLOW_CREDENTIALS = True
 
 
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
+    
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ]
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+    
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '30/day',
+        'user': '100/day'
+    },
+    
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20 ,
+    
+    'DEFAULT_SCHEMA_CLASS': 'drf_yasg.openapi.AutoSchema',
 }
-
-
-
-
-
-# Authentication
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = 'optional'  # یا 'mandatory'
-ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
-ACCOUNT_USERNAME_REQUIRED = True
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-
-# Security Settings (for production)
-SECURE_SSL_REDIRECT = False  # در تولید True شود
-SESSION_COOKIE_SECURE = False  # در تولید True شود
-CSRF_COOKIE_SECURE = False  # در تولید True شود
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_HSTS_SECONDS = 31536000  # در تولید فعال شود
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
 
 
 
@@ -197,15 +206,16 @@ REST_AUTH = {
     'USE_JWT': True,  # اگر از JWT استفاده می‌کنید
     'JWT_AUTH_COOKIE': 'jwt-auth',
     'JWT_AUTH_REFRESH_COOKIE': 'jwt-refresh-token',
+    
     'SESSION_LOGIN': False,
     'OLD_PASSWORD_FIELD_ENABLED': True,
     'LOGOUT_ON_PASSWORD_CHANGE': True,
-    'REGISTER_SERIALIZER': 'posts.serializers.CustomRegisterSerializer',  # اگر نیاز دارید
+    'REGISTER_SERIALIZER': 'config.serializers.CustomRegisterSerializer',  # اگر نیاز دارید
 }
 
 
-ACCOUNT_ADAPTER = 'posts.adapters.CustomAccountAdapter'  # سفارشی‌سازی اگر نیاز است
-SOCIALACCOUNT_ADAPTER = 'posts.adapters.CustomSocialAccountAdapter'
+ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'  # سفارشی‌سازی اگر نیاز است
+SOCIALACCOUNT_ADAPTER = 'allauth.socialaccount.adapter.DefaultSocialAccountAdapter'
 
 
 
@@ -213,18 +223,29 @@ SOCIALACCOUNT_ADAPTER = 'posts.adapters.CustomSocialAccountAdapter'
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'  # برای تولید
 
 
 # تنظیمات دیتابیس
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('blogapi'),
-        'USER': os.environ.get('sina'),
-        'PASSWORD': os.environ.get('sina1380'),
+        
+        'NAME': os.environ.get('DB_NAME', 'blogdb'), # مقدار پیش‌فرض اضافه شد
+        'USER': os.environ.get('DB_USER', 'bloguser'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'complexpass123'),
+        
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
+       
+        'OPTIONS': {
+            'connect_timeout': 5,  # زمان انتظار برای اتصال
+        }
 
     }
 }
@@ -293,7 +314,41 @@ SWAGGER_SETTINGS = {
 
 
 import os
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+
+# در محیط تولید این موارد را فعال کنید
+DEBUG = False
+ALLOWED_HOSTS = ['yourdomain.com', 'www.yourdomain.com']  # دامنه واقعی خود را وارد کنید
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')  # از متغیر محیطی بخوانید
+
+
+
+# Security Settings (for production)
+if not DEBUG:
+    SECURE_SSL_REDIRECT = False  # در تولید True شود
+    SESSION_COOKIE_SECURE = False  # در تولید True شود
+    CSRF_COOKIE_SECURE = False  # در تولید True شود
+    SECURE_HSTS_SECONDS = 31536000  # در تولید فعال شود
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+
+
+# تنظیمات ایمیل
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # در تولید
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+
+
+# تنظیمات Allauth
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # یا 'optional'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
+ACCOUNT_USERNAME_REQUIRED = True
+
 
 
 

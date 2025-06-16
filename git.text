@@ -5,7 +5,7 @@ git init
 git add README.md
 
 git add .
-git add backend/*
+
 
 
 git commit -m "first commit"
