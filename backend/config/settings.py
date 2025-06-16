@@ -1,6 +1,6 @@
 
 from pathlib import Path
-
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -9,10 +9,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-f6f4c2c6!60o1=@7wo9(212k!nj)@1@*ql^vf3@24=vptfec2+'
+# SECRET_KEY = 'your-very-secure-secret-key-at-least-50-characters-long'
+ 
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+# )%b$q1!5jeyugb$t-=7(v##s_)6axbg7r8wdex%s_@9j2@rf51
+
+# حالا می‌توانید از متغیرهای محیطی استفاده کنید
+# SECRET_KEY = os.getenv('SECRET_KEY')
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 ALLOWED_HOSTS = []
 
@@ -92,22 +99,22 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 from pathlib import Path
-import os
 
-# حالا می‌توانید از متغیرهای محیطی استفاده کنید
-SECRET_KEY = os.getenv('SECRET_KEY')
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
     }
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.postgresql',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
+    #     'USER': os.getenv('DB_USER'),
+    #     'PASSWORD': os.getenv('DB_PASSWORD'),
+    #     'HOST': os.getenv('localhost'),
+    #     'PORT': os.getenv('5432'),
+    # }
 }
 
 
@@ -312,8 +319,6 @@ SWAGGER_SETTINGS = {
     'USE_SESSION_AUTH': False,
 }
 
-
-import os
 
 # در محیط تولید این موارد را فعال کنید
 DEBUG = False
