@@ -1,12 +1,33 @@
+
+# Core Django
 Django>=5.2,<6.0
-djangorestframework>=3.14,<4.0
 django-cors-headers>=3.13,<4.0
-django-allauth>=0.42,<1.0
-dj-rest-auth>=2.2,<3.0
-drf-yasg>=1.21,<2.0
-python-dotenv>=1.0.0
 django-environ>=0.11.0
-psycopg2-binary>=2.9.0  # برای PostgreSQL
-whitenoise>=6.0.0  # برای مدیریت static files
+
+# Authentication
+
+djangorestframework>=3.14.0
+djangorestframework-simplejwt==5.2.0  # Matches DRF 3.14
+dj-rest-auth==2.2.4
+
+
+django-allauth==0.58.0
+# Database
+psycopg2>=2.9.9
+psycopg2-binary>=2.9.9
+
+# Caching
 django-redis>=5.2.0
 redis>=4.3.0
+
+# Documentation
+drf-yasg>=1.20.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# Static files
+whitenoise>=6.0.0
+
+# Build
+wheel>=0.42.0

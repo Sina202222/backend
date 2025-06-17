@@ -11,8 +11,8 @@ git add .
 git commit -m "first commit"
 git commit -m " add setting  django"
 
-git commit -m " install package React"
-git commit -m "  Add 5images + Name "
+git commit -m " add config/urls"
+git commit -m "  Add SECRET_KEY + install package (psycopg2-binary,psycopg2) "
 git commit -m "  Add tailwind + navbar + pages   "
 
 

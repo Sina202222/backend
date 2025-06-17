@@ -1,10 +1,9 @@
 
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
+
+
+
 
 urlpatterns = [
    
@@ -20,15 +19,14 @@ urlpatterns = [
     # /password/reset/confirm/ (POST)
     # /user/ (GET, PUT, PATCH)
     
-    path('api/v1/dj-rest-auth/registration/',
-        include('dj_rest_auth.registration.urls')),  # اضافه کردن URLهای ثبت‌نام
+    # path('api/v1/dj-rest-auth/registration/',
+    #     include('dj_rest_auth.registration.urls')),  # اضافه کردن URLهای ثبت‌نام
     # /registration/ (POST) - New user signup
     # /verify-email/ (POST) - Email verification
     
-    path('api/v1/dj-rest-auth/jwt/',
-        include('dj_rest_auth.jwt_auth.urls')),
+    # path('api/v1/dj-rest-auth/jwt/',
+    #     include('dj_rest_auth.jwt_auth.urls')),
     
     
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
 ]

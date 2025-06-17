@@ -1,27 +1,21 @@
 
 from pathlib import Path
 import os
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+
+from django.core.management.utils import get_random_secret_key
+
+
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = 'your-very-secure-secret-key-at-least-50-characters-long'
- 
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
-# )%b$q1!5jeyugb$t-=7(v##s_)6axbg7r8wdex%s_@9j2@rf51
-
-# حالا می‌توانید از متغیرهای محیطی استفاده کنید
-# SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.getenv('SECRET_KEY', default=get_random_secret_key())  # اگر .env وجود نداشت، کلید بساز
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
-
-ALLOWED_HOSTS = []
+DEBUG = True
 
 
 # Application definition
@@ -37,19 +31,25 @@ INSTALLED_APPS = [
     
     'django.contrib.sites',  # حتما اضافه شود (برای allauth)
     
-    # پکیج‌های ثالث
-    'rest_framework',
-    'rest_framework.authtoken',
-    
-    'corsheaders',
-    'drf_yasg',
-    
-    'dj_rest_auth',
-    'dj_rest_auth.registration',
     
     'allauth',
     'allauth.account',
     'allauth.socialaccount', 
+    
+    
+    # پکیج‌های ثالث
+    'rest_framework',
+    'rest_framework.authtoken',
+    'rest_framework_simplejwt',
+    'dj_rest_auth',
+    
+    
+    'corsheaders',
+    'drf_spectacular',
+    
+    
+    'dj_rest_auth.registration',
+    
     
     
     
@@ -100,6 +100,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 from pathlib import Path
 
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 DATABASES = {
@@ -116,6 +118,20 @@ DATABASES = {
     #     'PORT': os.getenv('5432'),
     # }
 }
+
+
+# Static & Media Files
+STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # یا هر مسیر دلخواه دیگر
+STATICFILES_DIRS = [BASE_DIR / 'static']  # پوشه‌های اضافی حاوی فایل‌های استاتیک
+# STATICFILES_DIRS = [
+#     BASE_DIR / 'frontend/build/static',  # اگر React build در این مسیر است
+# ]
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'  # برای تولید
+
 
 
 
@@ -169,7 +185,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # AUTH_USER_MODEL = 'config.CustomUser '  # اگر از مدل کاربر سفارشی استفاده می‌کنید
 
 
-SITE_ID = 1
+
 
 
 # CORS_ALLOW_ALL_ORIGINS = True
@@ -188,8 +204,9 @@ CORS_ALLOW_CREDENTIALS = True
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication',
+        'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
     ],
     
     'DEFAULT_PERMISSION_CLASSES': [
@@ -204,20 +221,36 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20 ,
     
-    'DEFAULT_SCHEMA_CLASS': 'drf_yasg.openapi.AutoSchema',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # or alternatively:
+    # 'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+   
 }
 
+SWAGGER_SETTINGS = {
+    'DEFAULT_GENERATOR_CLASS': 'drf_yasg.generators.OpenAPISchemaGenerator',
+}
+
+# # تنظیمات Swagger
+# SWAGGER_SETTINGS = {
+#     'SECURITY_DEFINITIONS': {
+#         'Bearer': {
+#             'type': 'apiKey',
+#             'name': 'Authorization',
+#             'in': 'header'
+#         }
+#     },
+#     'USE_SESSION_AUTH': False,
+# }
 
 
 REST_AUTH = {
     'USE_JWT': True,  # اگر از JWT استفاده می‌کنید
-    'JWT_AUTH_COOKIE': 'jwt-auth',
-    'JWT_AUTH_REFRESH_COOKIE': 'jwt-refresh-token',
     
     'SESSION_LOGIN': False,
     'OLD_PASSWORD_FIELD_ENABLED': True,
     'LOGOUT_ON_PASSWORD_CHANGE': True,
-    'REGISTER_SERIALIZER': 'config.serializers.CustomRegisterSerializer',  # اگر نیاز دارید
+    'REGISTER_SERIALIZER': 'dj_rest_auth.registration.serializers.RegisterSerializer',  # اگر نیاز دارید
 }
 
 
@@ -225,37 +258,6 @@ ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'  # سفارش�
 SOCIALACCOUNT_ADAPTER = 'allauth.socialaccount.adapter.DefaultSocialAccountAdapter'
 
 
-
-# Static & Media Files
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static']
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'  # برای تولید
-
-
-# تنظیمات دیتابیس
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        
-        'NAME': os.environ.get('DB_NAME', 'blogdb'), # مقدار پیش‌فرض اضافه شد
-        'USER': os.environ.get('DB_USER', 'bloguser'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'complexpass123'),
-        
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
-       
-        'OPTIONS': {
-            'connect_timeout': 5,  # زمان انتظار برای اتصال
-        }
-
-    }
-}
 
 # Cache Settings
 CACHES = {
@@ -307,23 +309,6 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
-# تنظیمات Swagger
-SWAGGER_SETTINGS = {
-    'SECURITY_DEFINITIONS': {
-        'Bearer': {
-            'type': 'apiKey',
-            'name': 'Authorization',
-            'in': 'header'
-        }
-    },
-    'USE_SESSION_AUTH': False,
-}
-
-
-# در محیط تولید این موارد را فعال کنید
-DEBUG = False
-ALLOWED_HOSTS = ['yourdomain.com', 'www.yourdomain.com']  # دامنه واقعی خود را وارد کنید
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')  # از متغیر محیطی بخوانید
 
 
 
@@ -347,13 +332,20 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 
+# تنظیمات سایت (معمولاً 1 برای پروژه‌های تک سایتی)
+SITE_ID = 1
 
 # تنظیمات Allauth
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'  # یا 'optional'
+ACCOUNT_EMAIL_VERIFICATION = 'optional'  # یا 'mandatory'  
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
-ACCOUNT_USERNAME_REQUIRED = True
 
+
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Your API',
+    'VERSION': '1.0.0',
+}
 
 
 
